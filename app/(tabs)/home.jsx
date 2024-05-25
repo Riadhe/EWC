@@ -1,42 +1,144 @@
-import { StatusBar } from "expo-status-bar";
-import { Redirect, router } from "expo-router";
-import { View, Text, Image, ScrollView, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { icons, images } from "../../constants";
+import React, { useState, useEffect } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import * as Location from 'expo-location';
+import MapView, { Marker } from 'react-native-maps';
+import { icons, images } from '../../constants';
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+  },
+  headerText: {
+    marginTop: 20,
+    fontSize: 32,
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  infoBox: {
+    marginTop: 40,
+    padding: 16,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#2c2c2c',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20
+  },
+  infoText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#aaaaaa',
+  },
+  imageButton: {
+    marginTop: 100,
+  },
+  image: {
+    maxWidth: 400,
+    width: '100%',
+    height: 200,
+    resizeMode: 'contain',
+  },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
+});
 
 const Home = () => {
+  const [location, setLocation] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [showMap, setShowMap] = useState(false);
+  const [showInfo, setShowInfo] = useState(true);
+
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Permission to access location was denied');
+        return;
+      }
+    })();
+  }, []);
+
+  const fetchLocation = async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      setErrorMsg('Permission to access location was denied');
+      return;
+    }
+
+    try {
+      let location = await Location.getCurrentPositionAsync({});
+      setLocation(location);
+      setShowMap(true);
+      setShowInfo(false); // hide the info and button when location is fetched
+    } catch (error) {
+      setErrorMsg('Error fetching location');
+    }
+  };
+
+  let text = 'Waiting..';
+  if (errorMsg) {
+    text = errorMsg;
+  } else if (location) {
+    text = JSON.stringify(location);
+  }
+
   return (
-<SafeAreaView className="bg-black-200 h_full">
-  <ScrollView contentContainerStyle={{ height: '100%' }}>
-    <ScrollView className="px-4 my-6">
-      <Text className="text-4xl text-white font-psemibold"style={{ marginTop: 20 }}>Search for devices</Text >
-      <View className="w-full h-24 px-4 bg-black-100 rounded-2xl border-2 border-black-200 flex justify-between items-center flex-row"style={{ marginTop: 40 }}>
-        <Image
-          source={icons.wheelchair}
-          resizeMode="contain"
-          alt="wheelchair"
-          className="w-10 h-10"
-        />
-        <Text className="text-lg text-gray-100 font-pextralight ml-1">
-             Please gurantee the battery power, and main power on 
-        </Text>
-
-      </View>
-      <TouchableOpacity>
-      <Image
-            source={images.search}
-            className="max-w-[400px] w-full h-[200px]"
-            resizeMode="contain"style={{ marginTop: 100 }}
-          />
-          </TouchableOpacity>
-          
-    </ScrollView>
-  </ScrollView>
-</SafeAreaView>
-
-
-  )
-}
-
-export default Home
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        <View style={{ padding: 16 }}>
+          <Text style={styles.headerText}>Search for Location</Text>
+          <View style={styles.infoBox}>
+            <Image
+              source={icons.wheelchair}
+              style={{ width: 40, height: 40 }}
+            />
+            <Text style={styles.infoText}>
+              Please guarantee the battery power, and main power on
+            </Text>
+          </View>
+          {showInfo ? (
+            <View>
+              <TouchableOpacity style={styles.imageButton} onPress={fetchLocation}>
+                <Image
+                  source={images.search}
+                  style={styles.image}
+                />
+              </TouchableOpacity>
+              <Text style={styles.infoText}>{text}</Text>
+            </View>
+          ) : showMap && location && (
+            <MapView
+              style={styles.map}
+              initialRegion={{
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+                latitudeDelta: 0.0922,
+                longitudeDelta: 0.0421,
+              }}
+            >
+              <Marker
+                coordinate={{
+                  latitude: location.coords.latitude,
+                  longitude: location.coords.longitude,
+                }}
+                title="My Location"
+              />
+            </MapView>
+          )}
+        </View>
+      </ScrollView>
+      <StatusBar style="auto" />
+    </SafeAreaView>
+  );
+};
+export default Home;

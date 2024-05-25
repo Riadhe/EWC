@@ -20,6 +20,7 @@ const SearchInput = ({ initialQuery }) => {
 
       <TouchableOpacity
         onPress={() => {
+          Alert.alert("Clicked!", "The search button has been clicked.");
           if (query === "")
             return Alert.alert(
               "Missing Query",
